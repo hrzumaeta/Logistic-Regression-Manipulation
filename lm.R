@@ -6,10 +6,11 @@ h2o.init(ip='localhost', nthreads=-1,
 h2o.removeAll()
 
 df <- mtcars %>% 
-  rownames_to_column("type") %>% 
+  rownames_to_column("type") %>% #Making the rownames the first column, to become our unique identifier for the cars
   mutate(efficient=ifelse(mpg>=25,1,0)) %>% 
   mutate(efficient=as.factor(efficient)) #Important to do this for the H2O function to recognize it as factor and not run into cardinality errors later
-##This is the extent of the feature engineering here
+
+##This is the extent of the feature engineering for this model
 ##We can do more interesting things, but for the purposes of this tutorial this is the bare minimum
 
 df %>% summarize(n())
@@ -63,7 +64,7 @@ tibbler <- as_tibble(test)
 weightoptimizer <- function(poe=.5, testobs="Mazda RX4"){
   
   testob <- data_h2o[data_h2o$type==testobs,]
-  finalRf_predictions <- h2o.predict(object=glm_model, newdata=testob)
+  finalRf_predictions <- h2o.predict(object=glm_model, newdata=testob) %>% as.tibble()
   print (paste("Original Prediction:",finalRf_predictions))
   
   probabilityofefficiency <- poe
@@ -85,3 +86,4 @@ weightoptimizer <- function(poe=.5, testobs="Mazda RX4"){
   return (magicvalue)
 }
 
+weightoptimizer()

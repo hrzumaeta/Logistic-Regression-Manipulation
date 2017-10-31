@@ -9,14 +9,21 @@ df <- mtcars %>%
   rownames_to_column("type") %>% 
   mutate(efficient=ifelse(mpg>=25,1,0)) %>% 
   mutate(efficient=as.factor(efficient)) #Important to do this for the H2O function to recognize it as factor and not run into cardinality errors later
+##This is the extent of the feature engineering here
+##We can do more interesting things, but for the purposes of this tutorial this is the bare minimum
+
+df %>% summarize(n())
+##We only have 32 observations and we have to split these into training, validation and test datasets... not ideal but we'll work with what we have
 
 data_h2o <- as.h2o(df, row.names = FALSE)
-
+#Split the data randomly, not using the split given by H2O because it's not random#
 rnd <- h2o.runif(data_h2o, seed=1000)
 training <- data_h2o[rnd<0.70,]
 validation <- data_h2o[rnd>=0.70 & rnd<0.85,]
 test <- data_h2o[rnd>=0.85 & rnd<1,]
 
+#Here we choose the dependent variable (y) and the independent variables which we separate by specifying the variables which
+#will NOT be included#
 y <- "efficient"
 x <- setdiff(names(data_h2o), c(y,"mpg", "qsec","disp","vs","drat","carb","type"))
 print(x)  
@@ -24,12 +31,12 @@ print(x)
 glm_model <- h2o.glm(
   training_frame = data_h2o,
   validation_frame=validation,
-  x=x, #make this binomial, so something like efficient
-  y=y,
-  model_id = "glm_model",  
-  family='binomial',#,'gaussian',
+  x=x, 
+  y=y, #make this binomial, so something like efficient
+  model_id = "glm_model",  #The model id is set here so you can reference it later
+  family='binomial',#This specifies a logistic regression
   nfolds=5
-)
+) #Include cross validation, this is good practice, but with so few samples right now, not the most useful#
 
 summary(glm_model)
 glm_test_perf <- h2o.performance(model = glm_model, newdata = test)
